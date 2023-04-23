@@ -22,6 +22,7 @@ class DownloadProgress {
   bool pauseButtonEnabled;
   int segmentNumber;
   int segmentLength;
+  int remainingSeconds;
   late Directory baseTempDir;
   String detailsStatus;
 
@@ -33,6 +34,7 @@ class DownloadProgress {
     this.estimatedRemaining = "",
     this.paused = false,
     this.writeProgress = 0,
+    this.remainingSeconds = -1,
     this.assembleProgress = 0,
     this.startButtonEnabled = false,
     this.pauseButtonEnabled = false,
@@ -64,6 +66,7 @@ class DownloadProgress {
       segmentLength: request.segmentLength,
       detailsStatus: request.detailsStatus,
       totalSegments: request.totalSegments,
+      remainingSeconds: request.remainingSeconds,
     );
     downloadProgress.baseTempDir = request.baseTempDir;
     return downloadProgress;

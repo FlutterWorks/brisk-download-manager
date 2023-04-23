@@ -87,6 +87,8 @@ class MultiConnectionHttpDownloadRequest {
 
   final int totalSegments;
 
+  int remainingSeconds = -1;
+
   /// Connection retry
   int lastResponseTimeMillis = DateTime.now().millisecondsSinceEpoch;
 
@@ -231,6 +233,7 @@ class MultiConnectionHttpDownloadRequest {
     if (downloadProgress == 1 && !isWritePartCaughtUp) {
       _updateStatus("Download Complete");
     }
+    _calculateEstimatedRemaining();
     _calculateTransferRate(chunk);
     _calculateDynamicFlushThreshold();
     downloadItem.progress = downloadProgress;
@@ -300,6 +303,12 @@ class MultiConnectionHttpDownloadRequest {
     } else {
       return '${bytesTransferRate.toStringAsFixed(2)} B/s';
     }
+  }
+
+  void _calculateEstimatedRemaining() {
+    if (bytesTransferRate == 0) return;
+    final remainingSec = (segmentLength - totalReceivedBytes) / bytesTransferRate;
+     remainingSeconds = ((((remainingSec % 31536000) % 86400) % 3600) % 60).floor();
   }
 
   void _calculateDynamicFlushThreshold() {

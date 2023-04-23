@@ -6,6 +6,7 @@ import 'package:brisk/constants/download_status.dart';
 import 'package:brisk/downloader/single_connection_isolation_handler.dart';
 import 'package:brisk/model/download_item_model.dart';
 import 'package:brisk/model/download_progress.dart';
+import 'package:brisk/model/download_segment.dart';
 import 'package:brisk/model/isolate/download_isolator_args.dart';
 import 'package:brisk/model/isolate/isolate_method_args.dart';
 import 'package:stream_channel/isolate_channel.dart';
@@ -25,6 +26,8 @@ class MultiConnectionIsolationHandler {
   static final Map<int, Map<int, Isolate>> _connectionIsolates = {};
 
   static Map<int, String> completionEstimations = {};
+
+  static List<DownloadSegment> segments = [];
 
   /// Settings
   static late Directory baseSaveDir;
@@ -59,14 +62,12 @@ class MultiConnectionIsolationHandler {
               _connectionProgresses[id]![segmentNumber] = progress;
               double totalByteTransferRate =
                   _calculateTotalConnectionsTransferRate(id);
-              final isTempWriteComplete = checkTempWriteCompletion(id);
               final totalProgress = _calculateTotalDownloadProgress(id);
               _calculateEstimatedRemaining(id, totalByteTransferRate);
               final downloadProgress = DownloadProgress(
                 downloadItem: progress.downloadItem,
                 downloadProgress: totalProgress,
-                transferRate:
-                    convertByteTransferRateToReadableStr(totalByteTransferRate),
+                transferRate: convertByteTransferRateToReadableStr(totalByteTransferRate),
               );
               _setEstimation(id, downloadProgress, totalProgress);
               _setButtonAvailability(
@@ -76,7 +77,7 @@ class MultiConnectionIsolationHandler {
                 totalProgress,
               );
               _setStatus(id, downloadProgress);
-              if (isTempWriteComplete && isAssembleEligible(downloadItem)) {
+              if (checkTempWriteCompletion(id) && isAssembleEligible(downloadItem)) {
                 downloadProgress.status = DownloadStatus.assembling;
                 handlerChannel.sink.add(downloadProgress);
                 final success = assembleFile(
@@ -93,6 +94,22 @@ class MultiConnectionIsolationHandler {
         });
       }
     });
+  }
+
+  static void handleDynamicSegmentation(DownloadProgress progress) {
+    final completedConnections = progress.connectionProgresses.where(
+      (conn) => conn.status == DownloadStatus.complete,
+    );
+    if (completionEstimations.isEmpty) return;
+    final eligibleHelperConnections = progress.connectionProgresses.where(
+      (conn) => conn.remainingSeconds < 3 && conn.remainingSeconds != -1,
+    );
+    for (final connection in eligibleHelperConnections) {
+      final downloadItemId = connection.downloadItem.id;
+      final channel =
+          _connectionChannels[downloadItemId]?[connection.segmentNumber];
+      if (channel == null) continue;
+    }
   }
 
   static bool isAssembleEligible(DownloadItemModel downloadItem) {

@@ -44,7 +44,6 @@ class DownloadRequestProvider with ChangeNotifier {
   /// Temp variable used to compare the last time the download item was updated to
   /// now in milliseconds in order to update every n seconds.
   int _previousUpdateTime = _nowMillis;
-
   void executeDownloadCommand(int id, DownloadCommand command) async {
     DownloadProgress? downloadProgress = downloads[id];
     downloadProgress ??= await _addDownloadProgress(id);
